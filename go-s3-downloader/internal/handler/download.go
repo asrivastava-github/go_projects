@@ -45,30 +45,8 @@ func DownloadFiles(s3Client *s3.S3, bucket, prefix string) error {
 				continue
 			}
 
-			// Calculate the local file path, preserving the directory structure
+			// Use the full key as the relative path
 			relPath := key
-			if prefix != "" && len(key) >= len(prefix) {
-				// If the prefix is not empty and the key starts with the prefix,
-				// strip the prefix to get the relative path
-				if prefix[len(prefix)-1] == '/' {
-					// If prefix ends with '/', use it as is
-					relPath = key
-				} else {
-					// Otherwise, we need to check if this is a file directly at the prefix or in a subdirectory
-					if len(key) == len(prefix) {
-						// This is a file exactly matching the prefix
-						relPath = filepath.Base(key)
-					} else if key[len(prefix)] == '/' {
-						// This is a file in a subdirectory of the prefix
-						relPath = key[len(prefix)+1:] // +1 to skip the '/'
-					} else {
-						// This is a file that has the prefix as a substring but is not in this directory
-						// (e.g. prefix="foo", key="foobar/file.txt")
-						// In this case, use the full key
-						relPath = key
-					}
-				}
-			}
 
 			// Determine the local file path
 			localPath := filepath.Join(baseDestDir, relPath)
@@ -91,7 +69,6 @@ func DownloadFiles(s3Client *s3.S3, bucket, prefix string) error {
 
 	return nil
 }
-
 
 // downloadFileWithPath downloads an S3 object to a specific local file path
 func downloadFileWithPath(s3Client *s3.S3, bucket, key, localFilePath string) error {
