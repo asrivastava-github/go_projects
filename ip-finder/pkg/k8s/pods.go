@@ -15,6 +15,7 @@ type PodResult struct {
 	NodeName    string
 	NodeIP      string
 	Status      string
+	HostNetwork bool
 	Labels      map[string]string
 	Annotations map[string]string
 }
@@ -88,6 +89,7 @@ func podToResult(pod *corev1.Pod) PodResult {
 		NodeName:    pod.Spec.NodeName,
 		NodeIP:      pod.Status.HostIP,
 		Status:      string(pod.Status.Phase),
+		HostNetwork: pod.Spec.HostNetwork,
 		Labels:      pod.Labels,
 		Annotations: pod.Annotations,
 	}

@@ -107,6 +107,20 @@ func (p *Printer) printK8sSection(pods []finder.PodSearchResult, errors []finder
 
 	for _, pr := range pods {
 		fmt.Printf("\n[Found] Context: %s\n", pr.Context)
+
+		hostNetworkCount := 0
+		for _, pod := range pr.Pods {
+			if pod.HostNetwork {
+				hostNetworkCount++
+			}
+		}
+
+		if hostNetworkCount == len(pr.Pods) && hostNetworkCount > 0 {
+			fmt.Printf("[Note] This is a node IP. All %d pod(s) use hostNetwork and share the node's IP.\n", hostNetworkCount)
+		} else if hostNetworkCount > 0 {
+			fmt.Printf("[Note] %d of %d pod(s) use hostNetwork (share node IP).\n", hostNetworkCount, len(pr.Pods))
+		}
+
 		p.printPods(pr.Pods)
 	}
 }
@@ -117,15 +131,20 @@ func (p *Printer) PrintK8sSkipped(reason string) {
 }
 
 func (p *Printer) printPods(pods []k8s.PodResult) {
-	fmt.Fprintln(p.writer, "NAMESPACE\tNAME\tPOD IP\tNODE\tSTATUS")
-	fmt.Fprintln(p.writer, "---------\t----\t------\t----\t------")
+	fmt.Fprintln(p.writer, "NAMESPACE\tNAME\tPOD IP\tNODE\tHOSTNET\tSTATUS")
+	fmt.Fprintln(p.writer, "---------\t----\t------\t----\t-------\t------")
 
 	for _, pod := range pods {
-		fmt.Fprintf(p.writer, "%s\t%s\t%s\t%s\t%s\n",
+		hostNet := "no"
+		if pod.HostNetwork {
+			hostNet = "yes"
+		}
+		fmt.Fprintf(p.writer, "%s\t%s\t%s\t%s\t%s\t%s\n",
 			pod.Namespace,
 			pod.Name,
 			pod.PodIP,
 			pod.NodeName,
+			hostNet,
 			pod.Status,
 		)
 	}
