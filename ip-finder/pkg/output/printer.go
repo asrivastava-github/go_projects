@@ -122,6 +122,11 @@ func (p *Printer) printK8sSection(pods []finder.PodSearchResult, errors []finder
 		}
 
 		p.printPods(pr.Pods)
+
+		if len(pr.AppPodsOnNode) > 0 {
+			fmt.Printf("\n[App Pods] %d application pod(s) running on this node (potential DB clients via SNAT):\n", len(pr.AppPodsOnNode))
+			p.printPods(pr.AppPodsOnNode)
+		}
 	}
 }
 

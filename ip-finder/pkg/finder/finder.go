@@ -21,8 +21,9 @@ type Result struct {
 }
 
 type PodSearchResult struct {
-	Context string
-	Pods    []k8s.PodResult
+	Context       string
+	Pods          []k8s.PodResult
+	AppPodsOnNode []k8s.PodResult // non-hostNetwork pods on the same node (when IP is a node IP)
 }
 
 type K8sError struct {
@@ -165,10 +166,26 @@ func (f *IPFinder) searchK8sPods(ctx context.Context, ip string, result *Result)
 
 		if len(pods) > 0 {
 			logger.Info("Found %d pod(s) in context %s", len(pods), ctxName)
-			result.Pods = append(result.Pods, PodSearchResult{
+			psr := PodSearchResult{
 				Context: ctxName,
 				Pods:    pods,
-			})
+			}
+
+			if allHostNetwork(pods) {
+				logger.Debug("All pods use hostNetwork, searching for application pods on node")
+				nodePods, err := podFinder.FindByNodeIP(ctx, ip)
+				if err != nil {
+					logger.Warn("Failed to find pods by node IP in context %s: %v", ctxName, err)
+				} else {
+					appPods := filterNonHostNetwork(nodePods)
+					if len(appPods) > 0 {
+						logger.Info("Found %d application pod(s) on node in context %s", len(appPods), ctxName)
+						psr.AppPodsOnNode = appPods
+					}
+				}
+			}
+
+			result.Pods = append(result.Pods, psr)
 		} else {
 			logger.Debug("No pods found in context %s", ctxName)
 		}
@@ -195,4 +212,23 @@ func contextDisplayName(ctx string) string {
 		return "(current context)"
 	}
 	return ctx
+}
+
+func allHostNetwork(pods []k8s.PodResult) bool {
+	for _, pod := range pods {
+		if !pod.HostNetwork {
+			return false
+		}
+	}
+	return len(pods) > 0
+}
+
+func filterNonHostNetwork(pods []k8s.PodResult) []k8s.PodResult {
+	var result []k8s.PodResult
+	for _, pod := range pods {
+		if !pod.HostNetwork {
+			result = append(result, pod)
+		}
+	}
+	return result
 }
