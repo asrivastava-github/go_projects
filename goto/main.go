@@ -2,64 +2,62 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 // Function to check if AWS credentials are valid
 func areAWSCredentialsValid() bool {
-	sess, err := session.NewSession(&aws.Config{})
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return false
 	}
 
-	svc := sts.New(sess)
-	_, err = svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	stsClient := sts.NewFromConfig(cfg)
+	_, err = stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	return err == nil
 }
 
 // Fetch instances based on role tag
-func getEC2Instances(role string, awsRegion string) ([]*ec2.Instance, error) {
+func getEC2Instances(role string, awsRegion string) ([]ec2types.Instance, error) {
 	// log.Printf("Fetching EC2 instances with Role: %s", role)
 
-	sess, err := session.NewSession(&aws.Config{
-    Region: aws.String(awsRegion),
-    Credentials: credentials.NewEnvCredentials(),
-	})
-
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(awsRegion))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AWS session: %v", err)
+		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
-	
-	svc := ec2.New(sess)
+
+	svc := ec2.NewFromConfig(cfg)
 	// log.Printf("EC2 client created: %v", svc)
-	filters := []*ec2.Filter{
+	filters := []ec2types.Filter{
 		{
 			Name:   aws.String("tag:Role"),
-			Values: []*string{aws.String(role)},
+			Values: []string{role},
 		},
 		{
 			Name:   aws.String("instance-state-name"),
-			Values: []*string{aws.String("running")},
+			Values: []string{"running"},
 		},
 	}
 
-	result, err := svc.DescribeInstances(&ec2.DescribeInstancesInput{Filters: filters})
+	result, err := svc.DescribeInstances(ctx, &ec2.DescribeInstancesInput{Filters: filters})
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe instances: %v", err)
 	}
 
-	var instances []*ec2.Instance
+	var instances []ec2types.Instance
 	for _, reservation := range result.Reservations {
 		instances = append(instances, reservation.Instances...)
 	}
@@ -72,7 +70,7 @@ func getEC2Instances(role string, awsRegion string) ([]*ec2.Instance, error) {
 }
 
 // Select instance if multiple found
-func selectInstance(instances []*ec2.Instance) *ec2.Instance {
+func selectInstance(instances []ec2types.Instance) ec2types.Instance {
 	if len(instances) == 1 {
 		return instances[0]
 	}
@@ -101,7 +99,7 @@ func selectInstance(instances []*ec2.Instance) *ec2.Instance {
 }
 
 // Connect to selected instance via SSH
-func sshToInstance(instance *ec2.Instance) {
+func sshToInstance(instance ec2types.Instance) {
 	var fqdn string
 	for _, tag := range instance.Tags {
 		if *tag.Key == "FQDN" {
