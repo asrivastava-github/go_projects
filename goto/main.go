@@ -98,15 +98,19 @@ func selectInstance(instances []ec2types.Instance) ec2types.Instance {
 	return instances[choice-1]
 }
 
-// Connect to selected instance via SSH
-func sshToInstance(instance ec2types.Instance) {
-	var fqdn string
+// extractFQDN returns the FQDN tag value from an instance, or empty string if not found
+func extractFQDN(instance ec2types.Instance) string {
 	for _, tag := range instance.Tags {
 		if *tag.Key == "FQDN" {
-			fqdn = *tag.Value
-			break
+			return *tag.Value
 		}
 	}
+	return ""
+}
+
+// Connect to selected instance via SSH
+func sshToInstance(instance ec2types.Instance) {
+	fqdn := extractFQDN(instance)
 
 	if fqdn == "" {
 		log.Fatal("No FQDN tag found for the selected instance")
@@ -120,22 +124,27 @@ func sshToInstance(instance ec2types.Instance) {
 	}
 }
 
+// parseArgs parses command-line arguments and returns role, env, region
+func parseArgs(args []string) (role, env, region string, err error) {
+	if len(args) < 3 {
+		return "", "", "", fmt.Errorf("usage: <binary> <role> <env> [aws_region]")
+	}
+	role = args[1]
+	env = args[2]
+	region = "us-east-1"
+	if len(args) > 3 {
+		region = args[3]
+	}
+	return role, env, region, nil
+}
+
 func main() {
-	if len(os.Args) < 3 {
-		log.Println("Usage: <binary> <role> <env> [aws_region]")
+	role, env, awsRegion, err := parseArgs(os.Args)
+	if err != nil {
+		log.Println(err)
 		os.Exit(1)
 	}
-
-	role := os.Args[1]
-	env := os.Args[2]
 	awsProfile := env
-	awsRegion	:= "us-east-1"
-	// log.Printf("%v", len(os.Args))
-	// log.Printf("%v", os.Args)
-
-	if len(os.Args) > 3 {
-		awsRegion = os.Args[3]
-	}
 
 	// Check if AWS credentials exist & are valid
 	if !areAWSCredentialsValid() {
