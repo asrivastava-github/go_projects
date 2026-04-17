@@ -1,17 +1,19 @@
 package handler
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
-	"io"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func DownloadFiles(s3Client *s3.S3, bucket, prefix string) error {
+func DownloadFiles(s3Client *s3.Client, bucket, prefix string) error {
+	ctx := context.Background()
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
@@ -33,9 +35,15 @@ func DownloadFiles(s3Client *s3.S3, bucket, prefix string) error {
 	}
 
 	// Use pagination to handle large numbers of objects
-	err = s3Client.ListObjectsV2Pages(input, func(result *s3.ListObjectsV2Output, lastPage bool) bool {
+	paginator := s3.NewListObjectsV2Paginator(s3Client, input)
+	for paginator.HasMorePages() {
+		result, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to list objects in bucket %s: %w", bucket, err)
+		}
+
 		for _, item := range result.Contents {
-			if item == nil || item.Key == nil {
+			if item.Key == nil {
 				continue
 			}
 
@@ -52,26 +60,20 @@ func DownloadFiles(s3Client *s3.S3, bucket, prefix string) error {
 			localPath := filepath.Join(baseDestDir, relPath)
 
 			// Download the file
-			err := downloadFileWithPath(s3Client, bucket, key, localPath)
+			err := downloadFileWithPath(ctx, s3Client, bucket, key, localPath)
 			if err != nil {
 				fmt.Printf("Warning: Failed to download %s: %v\n", key, err)
 				// Continue downloading other files even if one fails
 				continue
 			}
 		}
-
-		return true // Continue processing pages
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to list objects in bucket %s: %w", bucket, err)
 	}
 
 	return nil
 }
 
 // downloadFileWithPath downloads an S3 object to a specific local file path
-func downloadFileWithPath(s3Client *s3.S3, bucket, key, localFilePath string) error {
+func downloadFileWithPath(ctx context.Context, s3Client *s3.Client, bucket, key, localFilePath string) error {
 	// Ensure directory exists (create if not)
 	dirPath := filepath.Dir(localFilePath)
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
@@ -90,7 +92,7 @@ func downloadFileWithPath(s3Client *s3.S3, bucket, key, localFilePath string) er
 		Key:    aws.String(key),
 	}
 
-	result, err := s3Client.GetObject(input)
+	result, err := s3Client.GetObject(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to download file %s: %w", key, err)
 	}

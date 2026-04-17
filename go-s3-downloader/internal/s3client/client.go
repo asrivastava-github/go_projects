@@ -7,32 +7,32 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"go-s3-downloader/internal/config"
 )
 
 type S3Client struct {
-	s3 *s3.S3
+	s3 *s3.Client
 }
 
 // GetS3Client returns the underlying AWS S3 client
-func (c *S3Client) GetS3Client() *s3.S3 {
+func (c *S3Client) GetS3Client() *s3.Client {
 	return c.s3
 }
 
 func NewS3Client(cfg *config.Config) (*S3Client, error) {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(cfg.Region),
-	})
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
+		awsconfig.WithRegion(cfg.Region),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create session: %w", err)
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	return &S3Client{
-		s3: s3.New(sess),
+		s3: s3.NewFromConfig(awsCfg),
 	}, nil
 }
 
@@ -53,7 +53,7 @@ func (c *S3Client) DownloadFile(bucket, key string) error {
 		Key:    aws.String(key),
 	}
 
-	result, err := c.s3.GetObjectWithContext(context.Background(), input)
+	result, err := c.s3.GetObject(context.Background(), input)
 	if err != nil {
 		return fmt.Errorf("failed to download file: %w", err)
 	}

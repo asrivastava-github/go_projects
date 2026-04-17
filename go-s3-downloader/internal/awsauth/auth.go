@@ -1,24 +1,24 @@
 package awsauth
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/exec"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 // AreAWSCredentialsValid checks if AWS credentials are valid
 func AreAWSCredentialsValid() bool {
-	sess, err := session.NewSession(&aws.Config{})
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return false
 	}
 
-	svc := sts.New(sess)
-	_, err = svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	stsClient := sts.NewFromConfig(cfg)
+	_, err = stsClient.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 	return err == nil
 }
 
