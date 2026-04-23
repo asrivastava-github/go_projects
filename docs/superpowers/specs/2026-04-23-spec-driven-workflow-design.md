@@ -23,11 +23,11 @@ This draws from the **AI Unified Process (AIUP)** by Simon Martinelli — specif
 
 ### Per-Project Spec Structure
 
-Each project gets a `docs/` directory with three markdown files:
+Each project gets a `specs/` directory with three markdown files:
 
 ```
 <project>/
-├── docs/
+├── specs/
 │   ├── requirements.md    # WHAT — use cases, actors, acceptance criteria
 │   ├── design.md          # HOW — architecture, components, data flow
 │   └── tasks.md           # TRACK — implementation tasks with traceability
@@ -131,12 +131,12 @@ go_projects/
 │   ├── design.md          # Copy-and-fill template
 │   └── tasks.md           # Copy-and-fill template
 ├── SPEC-GUIDE.md          # Workflow guide: how to use spec-driven development
-├── awsct/docs/            # Project-level specs
-├── gcpat/docs/            # Project-level specs
-├── goto/docs/             # Project-level specs
-├── goto-db/docs/          # Project-level specs
-├── go-s3-downloader/docs/ # Project-level specs
-├── ip-finder/docs/        # Project-level specs
+├── awsct/specs/            # Project-level specs
+├── gcpat/specs/            # Project-level specs
+├── goto/specs/             # Project-level specs
+├── goto-db/specs/          # Project-level specs
+├── go-s3-downloader/specs/ # Project-level specs
+├── ip-finder/specs/        # Project-level specs
 └── ...
 ```
 
@@ -148,12 +148,12 @@ A short workflow guide covering:
 2. **Working on an existing project** — read specs before changing code; update specs when behavior changes
 3. **Spec-first with AI agents** — point the agent at `requirements.md` + `design.md` before asking it to generate code
 4. **Keeping specs in sync** — when code changes, check if specs need updating; the changelog in `tasks.md` tracks evolution
-5. **Splitting a project to its own repo** — the `docs/` directory travels with the project; it is fully self-contained
+5. **Splitting a project to its own repo** — the `specs/` directory travels with the project; it is fully self-contained
 
 ### Migration Plan
 
-1. **Move existing `awsct` spec** from `docs/superpowers/specs/2026-04-17-awsct-design.md` → split into `awsct/docs/requirements.md`, `awsct/docs/design.md`, `awsct/docs/tasks.md`
-2. **Move existing `awsct` plan** from `docs/superpowers/plans/2026-04-17-awsct.md` → fold into `awsct/docs/tasks.md`
+1. **Move existing `awsct` spec** from `docs/superpowers/specs/2026-04-17-awsct-design.md` → split into `awsct/specs/requirements.md`, `awsct/specs/design.md`, `awsct/specs/tasks.md`
+2. **Move existing `awsct` plan** from `docs/superpowers/plans/2026-04-17-awsct.md` → fold into `awsct/specs/tasks.md`
 3. **Create specs for existing projects** by examining their code:
    - `gcpat` — GCP Audit Trail CLI
    - `goto` — AWS SSM/SSH connection tool
