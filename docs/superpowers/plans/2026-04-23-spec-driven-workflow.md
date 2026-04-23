@@ -305,6 +305,26 @@ The `specs/` directory is self-contained. When you move a project to its own rep
 
 Reusable templates live in `spec-templates/`. Copy them to start a new project's specs.
 
+## Maintenance & Security
+
+Dependency and version management applies equally to all projects. Individual project specs don't repeat this policy — they follow it.
+
+### Dependencies
+
+- **Quarterly review:** Check all `go.mod` dependencies for security advisories and updates
+- **CVE monitoring:** When a CVE is reported for a dependency, upgrade promptly — track the work in the affected project's `tasks.md`
+- **Go version:** Keep Go version current across all projects; update `go.mod` when a new stable release lands
+- **Audit command:** Run `go mod tidy` and `govulncheck ./...` periodically to catch stale or vulnerable dependencies
+
+### Version Pinning
+
+- Each project's `design.md` Dependencies table records current versions
+- When upgrading, update the Dependencies table in `design.md` and log the change in `tasks.md` Changelog
+
+### Per-Project Security Requirements
+
+Project-specific security constraints (e.g., "Must use AWS SDK v2; v1 is EOL", "No plaintext credentials in config") belong in that project's `requirements.md` under Non-Functional Requirements.
+
 ## Influences
 
 This workflow draws from:
