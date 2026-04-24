@@ -45,6 +45,36 @@ Read specs/requirements.md and specs/design.md, then implement UC-XXX-003
 
 The structured use cases give AI agents actors, flows, business rules, and acceptance criteria — far more effective than freeform prompts.
 
+### Making Incremental Changes
+
+When updating a spec, **tell the agent exactly what changed** — not "here's the whole spec, make it work." This prevents unnecessary rewrites.
+
+**Do this:**
+```
+I added BR-007 to UC-WHO-001 in requirements.md. Update only the affected code.
+```
+```
+I changed the Main Flow step 3 in UC-DL-001 — download files should go to
+~/downloads/ instead of ~/s3_files/. Update the handler accordingly.
+```
+```
+Read specs/requirements.md. I've added UC-RES-002 (a new use case). 
+Implement only this new use case — don't touch existing code.
+```
+
+**Don't do this:**
+```
+Here's my updated requirements.md — implement it.
+```
+This risks the agent regenerating everything from scratch instead of making a targeted change.
+
+**Why this works:** Use case IDs (`UC-XXX-NNN`), business rule IDs (`BR-NNN`), and the traceability in `tasks.md` (which maps tasks → use cases → files) give the agent precise scope. It knows *which* use case changed, *which* files implement it, and can make a surgical edit.
+
+**After making changes:**
+1. Update the spec first (requirements.md or design.md)
+2. Tell the agent what specifically changed
+3. Log the change in `tasks.md` Changelog
+
 ### Keeping Specs in Sync
 
 - When code changes, ask: "Does the spec still match?"
